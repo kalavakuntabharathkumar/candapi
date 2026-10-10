@@ -1,0 +1,22 @@
+services:
+  api:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://candidate:candidate@postgres:5432/candidates
+      REDIS_URL: redis://redis:6379
+      RUN_WORKER: "true"
+    depends_on: [postgres, redis]
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: candidate, POSTGRES_PASSWORD: candidate, POSTGRES_DB: candidates }
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data", "./src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U candidate -d candidates"], interval: 5s, timeout: 3s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10 }
+volumes:
+  pgdata:
